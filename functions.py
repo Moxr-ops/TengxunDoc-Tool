@@ -16,7 +16,6 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 class Responder:
     q_count = 0
-    #state_code = 0
     
     def __init__(self, url):
         edge_driver_path = 'D:/github/tengxunwendang/msedgedriver.exe'
@@ -44,9 +43,7 @@ class Responder:
             questions = self.driver.find_elements(By.CSS_SELECTOR, ".question")
             self.q_count = len(self.driver.find_elements(By.CSS_SELECTOR, ".question"))
             select_sum = 0
-            print(f"共有{self.q_count}个问题")
-            #print(questions)
-            #question_list = []
+            print(f"\n共有{self.q_count}个问题")
 
             for question in questions:  
                 type = question.get_attribute('data-type')
@@ -82,29 +79,26 @@ class Responder:
         finally:
             return self.questions
             
-#    def add_question(self, question_type, locator, answer):
-#        self.questions.append({
-#            'type': question_type,
-#            'locator': locator,
-#            'answer': answer
-#        })
-#
-#    def Drop_Down_Page(self):
-#        body = self.driver.find_elemen(By.CSS_SELECTOR, 'body')
-#        actions = ActionChains(self.driver)
-#        actions.scroll(body)
-#        actions.perform()
+    def add_question(self, question_type, locator, answer):
+        self.questions.append({
+            'type': question_type,
+            'locator': locator,
+            'answer': answer
+        })
+
+    def Drop_Down_Page(self):
+        body = self.driver.find_elemen(By.CSS_SELECTOR, 'body')
+        actions = ActionChains(self.driver)
+        actions.scroll(body)
+        actions.perform()
 
     def fill_text_field(self, data_qid, text):
         try:
             selector = f"[data-qid='{data_qid}']"
-            #print(selector)
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
             element = self.driver.find_element(By.CSS_SELECTOR, selector)
-           # print(element)
             textarea = element.find_element(By.CSS_SELECTOR, "textarea")
-           # print(textarea)
-           # textarea.click()
+
             self.driver.execute_script("arguments[0].click();", textarea)
             textarea.send_keys(text)
         finally:
@@ -123,7 +117,7 @@ class Responder:
             for index in arr:
                 selector = f"[data-qid='{data_qid}'] .form-choice.form-choice-checkbox div:nth-child({index}) .form-choice-option-normal.form-choice-checkbox-option-normal"
                 choice = self.driver.find_element(By.CSS_SELECTOR, selector)
-                print(choice)
+
                 self.driver.execute_script("arguments[0].click();", choice)
         finally:
             time.sleep(0)
@@ -134,8 +128,7 @@ class Responder:
             dropdown = self.driver.find_element(By.CSS_SELECTOR, selector)
             if dropdown:
                 self.driver.execute_script("arguments[0].click();", dropdown)
-
-            time.sleep(0)
+                time.sleep(0.3)
 
             script = """
             var elements = document.querySelectorAll('.dui-dropdown-content-inner');
@@ -164,22 +157,6 @@ class Responder:
             if dropdown:
                 self.driver.execute_script("arguments[0].click();", dropdown)
 
-
-            #option_selector = f"div.dui-dropdown-content-inner > div:nth-child({index+1})"
-            #wait = WebDriverWait(self.driver, 10)
-            #option = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, option_selector)))
-            ##option = self.driver.find_element(By.CSS_SELECTOR, option_selector)
-            #self.driver.execute_script("arguments[0].click();", option)
-           #selector = f"[data-qid='{data_qid}'] span.dui-select-arrow.form-select-arrow"
-           #element = self.driver.find_element(By.CSS_SELECTOR, selector)
-           #select = Select(element)
-           #select.select_by_index(index)
-
-            #if 1 <= index <= lens:
-            #    time.sleep(0)
-            #else:
-            #    print(f"索引 {index} 超出范围，选项数量为 {lens}")
-
         finally:
             time.sleep(0)
     
@@ -190,7 +167,7 @@ class Responder:
                     print(f"\n问题: {question['content']}")
 
                     if question['type'] == 'radio':
-                        print(f"选项: {question['radio_choice']}")
+                        print(f"选项: \n{question['radio_choice']}")
                         user_answer = input("请输入选项序号: ")
                         if user_answer.isdigit() and 1 <= int(user_answer) <= 4:
                             question['user_answer'] = int(user_answer)
@@ -228,7 +205,7 @@ class Responder:
 
                     print("输入无效，请重新输入")
 
-            print("获取答案完成")
+            print("获取答案完成，等待答题时机...")
 
         except Exception as e:
             print(f"获取答案时发生错误: {str(e)}")
@@ -262,62 +239,63 @@ class Responder:
         finally:
             time.sleep(0)
 
-        
-
     def fill_the_questions(self):
         print("start fill")
-        #self.driver.refresh()
-        #time.sleep(3)
         try:
             for question in self.questions:
-                #while True:
-                    if question['type'] == 'simple':
-                        max_attempts = 10
-                        while max_attempts >= 0:
-                            try:
-                                self.fill_text_field(question['data-qid'], question['user_answer'])
-                                break
-                            except Exception as e:
-                                print(f"填充simple时发生错误: {str(e)}")
-                                max_attempts -= 1
-                                time.sleep(0.1)
-                    if question['type'] == 'radio':
-                        max_attempts = 10
-                        while max_attempts >= 0:
-                            try:
-                                self.fill_radio(question['data-qid'], question['user_answer'])
-                                break
-                            except Exception as e:
-                                print(f"填充radio时发生错误: {str(e)}")
-                                max_attempts -= 1
-                                time.sleep(0.1)
-                    if question['type'] == 'checkbox':
-                        max_attempts = 10
-                        while max_attempts >= 0:
-                            try:
-                                self.fill_checkbox(question['data-qid'], question['user_answer'])
-                                break
-                            except Exception as e:
-                                print(f"填充checkbox时发生错误: {str(e)}")
-                                max_attempts -= 1
-                                time.sleep(0.1)
-                    if question['type'] == 'select':
-                        max_attempts = 10
-                        while max_attempts >= 0:
-                            try:
-                                self.fill_select(question['data-qid'], question['select_pos'], question['user_answer'])
-                                break
-                            except Exception as e:
-                                print(f"填充select时发生错误: {str(e)}")
-                                max_attempts -= 1
-                                time.sleep(0.1)
-            print("填写成功")
+                if question['type'] == 'simple':
+                    max_attempts = 10
+                    while max_attempts >= 0:
+                        try:
+                            self.fill_text_field(question['data-qid'], question['user_answer'])
+                            print(f"成功填写问题：“{question['content']}”")
+                            break
+                        except Exception as e:
+                            print(f"填充simple时发生错误: {str(e)}")
+                            max_attempts -= 1
+                            time.sleep(0.1)
+                    print(f"填写问题“{question['content']}”时失败")
+                if question['type'] == 'radio':
+                    max_attempts = 10
+                    while max_attempts >= 0:
+                        try:
+                            self.fill_radio(question['data-qid'], question['user_answer'])
+                            print(f"成功填写问题：“{question['content']}”")
+                            break
+                        except Exception as e:
+                            print(f"填充radio时发生错误: {str(e)}")
+                            max_attempts -= 1
+                            time.sleep(0.1)
+                    print(f"填写问题“{question['content']}”时失败")
+                if question['type'] == 'checkbox':
+                    max_attempts = 10
+                    while max_attempts >= 0:
+                        try:
+                            self.fill_checkbox(question['data-qid'], question['user_answer'])
+                            print(f"成功填写问题：“{question['content']}”")
+                            break
+                        except Exception as e:
+                            print(f"填充checkbox时发生错误: {str(e)}")
+                            max_attempts -= 1
+                            time.sleep(0.1)
+                    print(f"填写问题“{question['content']}”时失败")
+                if question['type'] == 'select':
+                    max_attempts = 10
+                    while max_attempts >= 0:
+                        try:
+                            self.fill_select(question['data-qid'], question['select_pos'], question['user_answer'])
+                            print(f"成功填写问题：“{question['content']}”")
+                            break
+                        except Exception as e:
+                            print(f"填充select时发生错误: {str(e)}")
+                            max_attempts -= 1
+                            time.sleep(0.1)
+                    print(f"填写问题“{question['content']}”时失败")
+            print("填写完毕")
         except TimeoutException:
             print("在指定时间内元素不可交互")
         finally:
             print("try to fill questions...")
-        #self.state_code = 0
-
     
     def Submit(self):
         max_attempts = 10
@@ -325,43 +303,33 @@ class Responder:
             try:
                 submit = self.driver.find_element(By.CSS_SELECTOR, '.question-commit button')
                 self.driver.execute_script("arguments[0].click();", submit)
-               # submit.click()
-               # time.sleep(0.2)
                 submit = self.driver.find_element(By.CSS_SELECTOR, '.dui-button.dui-modal-footer-ok.dui-button-type-primary.dui-button-size-default')
                 self.driver.execute_script("arguments[0].click();", submit)
-               # submit.click()
+                break
             except Exception as e:
                 print(f"提交时发生错误: {str(e)}")
                 max_attempts -= 1
-                time.sleep(0.5)
+                time.sleep(0.2)
             finally:
-                print("Submit")
+                print("try to submit...")
         print("提交失败")
         sys.exit
-        
 
     def Login(self):
         try:
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#header-login-btn')))
             submit = self.driver.find_element(By.CSS_SELECTOR, '#header-login-btn')
             self.driver.execute_script("arguments[0].click();", submit)
-#            submit.click()
+
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.dui-checkbox.dui-checkbox-normal.dui-checkbox-tick input[type="checkbox"]')))
             submit = self.driver.find_element(By.CSS_SELECTOR, '.dui-checkbox.dui-checkbox-normal.dui-checkbox-tick input[type="checkbox"]')
             self.driver.execute_script("arguments[0].click();", submit)
-           # submit.click()
-           # WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, '.js_quick_login.web_qrcode_panel_quick_login button')))  
-           # submit = self.driver.find_element(By.CSS_SELECTOR, '.js_quick_login.web_qrcode_panel_quick_login button')
-           # ActionChains(self.driver).move_to_element(submit).perform()
-           # time.sleep(1)
-           # submit = self.driver.find_element(By.CSS_SELECTOR, '#tpl_for_iframe > div.js_quick_login.web_qrcode_panel_quick_login > div > button')
-           # submit.click()
+
             WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#layout > div.dui-tabs.top-tab-bar-pc > div.dui-tabs-bar-container > ul > li:nth-child(1)')))
             submit = self.driver.find_element(By.CSS_SELECTOR, '#layout > div.dui-tabs.top-tab-bar-pc > div.dui-tabs-bar-container > ul > li:nth-child(1)')
             self.driver.execute_script("arguments[0].click();", submit)
-           # submit.click()
+
         except Exception as e:
-            #print(f"自动登录发生错误: {str(e)}")
             pass
         finally:
             print("Login...")
@@ -377,22 +345,24 @@ class Responder:
                 print(f"获取时间时发生错误: {str(e)}")
                 max_attempts -= 1
 
-                try:
-                     self.start_time = input("请手动输入时间（格式：%Y-%m-%d %H:%M）：")
-                     start_time = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M")
-                     current_time = datetime.now()
-                     if start_time > current_time:
-                         print(f"获取时间成功，自动填写程序将在{self.start_time}启动")
-                         return self.start_time
-                     else:
-                         print("开始时间不是在未来，程序启动失败")
-                         sys.exit()
-                except ValueError:
-                     print("输入的时间格式不正确，请重新输入。")
-                     sys.exit()
+                max_attempts = 5
+                while max_attempts >= 0:
+                    try:
+                        self.start_time = input("请手动输入时间（格式：%Y-%m-%d %H:%M）：")
+                        start_time = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M")
+                        current_time = datetime.now()
+                        if start_time > current_time:
+                            print(f"获取时间成功，自动填写程序将在{self.start_time}启动")
+                            return self.start_time
+                        else:
+                            print("开始时间不是在未来，程序启动失败")
+                            sys.exit()
+                    except ValueError:
+                         print("输入的时间格式不正确，请重新输入。")
+                         max_attempts -= 1
+                print("获取时间失败，程序结束")
+                sys.exit()
         try:
-            #raw_time_element = self.driver.find_element(By.CSS_SELECTOR, ".form-header-time-setting")
-            #raw_time = raw_time_element.find_element(By.CSS_SELECTOR, "div.form-header-setting-group.form-header-setting-child > div > div:nth-child(2)").text
             raw_time = raw_time.split("开始")[0]
             current_year = datetime.now().year
             start_time_str = f"{current_year}-{raw_time}"
@@ -408,21 +378,6 @@ class Responder:
                 sys.exit()
         finally:
             pass
-       # except Exception as e:
-       #     print(f"获取开始时间时发生错误: {str(e)}")
-       #     try:
-       #         self.start_time = input("请手动输入时间（格式：%Y-%m-%d %H:%M）：")
-       #         start_time = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M")
-       #         current_time = datetime.now()
-       #         if start_time > current_time:
-       #             print(f"获取时间成功，自动填写程序将在{self.start_time}启动")
-       #             return self.start_time
-       #         else:
-       #             print("开始时间不是在未来，程序启动失败")
-       #             sys.exit()
-       #     except ValueError:
-       #         print("输入的时间格式不正确，请重新输入。")
-       #         sys.exit()
                 
     def time_count(self, delay):
         start_time = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M")
@@ -435,10 +390,8 @@ class Responder:
         wait_seconds = (start_time0 - now).total_seconds() + delay
 
         return wait_seconds
-
     
     def timed_operation(self, func):
-        #self.get_start_time()
         try:
             run_time = datetime.strptime(self.start_time, "%Y-%m-%d %H:%M")
             schedule.every().day.at(run_time.strftime("%H:%M")).do(func)
@@ -452,7 +405,6 @@ class Responder:
     def test_func(self):
         for question in self.questions:
             question['user_answer'] = '1'
-
         
     def Expand(self):
         self.driver.set_window_size(5000, 5000)

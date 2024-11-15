@@ -2,9 +2,15 @@ import time
 import schedule
 from datetime import datetime
 import functions
+import threading
 
 
 state_code = 0
+
+def wait_and_fill():
+        time.sleep(Instance.time_count(1))
+        Instance.fill_the_questions()
+        Instance.Submit()
 
 if __name__ == "__main__":
     #url = input('the url: ')
@@ -26,8 +32,5 @@ if __name__ == "__main__":
 
     Instance.get_answer()
 
-    time.sleep(Instance.time_count(1))
-
-    Instance.fill_the_questions()
-
-    Instance.Submit()
+    wait_thread = threading.Thread(target=wait_and_fill)
+    wait_thread.start()
