@@ -42,7 +42,7 @@ class Responder:
             WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".question")))
             questions = self.driver.find_elements(By.CSS_SELECTOR, ".question")
             self.q_count = len(self.driver.find_elements(By.CSS_SELECTOR, ".question"))
-            select_sum = 0
+            select_pos = -1
             print(f"\n共有{self.q_count}个问题")
 
             for question in questions:  
@@ -60,8 +60,8 @@ class Responder:
                 else:
                     checkbox_choice = None
                 if type == 'select':
-                    select_sum += 1
-                    select_choice = self.get_select_text(select_sum, lens)
+                    select_pos += 1
+                    select_choice, lens = self.get_select_text(select_pos, lens)
                 else:
                     select_choice = None 
                 user_answer = None
@@ -73,7 +73,7 @@ class Responder:
                     'checkbox_choice': checkbox_choice,
                     'select_choice': select_choice, #下拉表单中的内容
                     'select_len': lens, #下拉表单中选项个数
-                    'select_pos': select_sum, #select类型问题中的第几个，用于定位表单
+                    'select_pos': select_pos, #select类型问题中的第几个(从0开始)，用于定位表单
                     'user_answer': user_answer
                 })
         finally:
@@ -123,43 +123,64 @@ class Responder:
         finally:
             time.sleep(0)
 
-    def fill_select(self, data_qid, pos, index): #填充下拉表单类问题
+    def fill_select(self, data_qid, pos, text):
         try:
-            selector = f"[data-qid='{data_qid}'] span.dui-select-arrow.form-select-arrow"
-            dropdown = self.driver.find_element(By.CSS_SELECTOR, selector)
-            if dropdown:
-                self.driver.execute_script("arguments[0].click();", dropdown)
-                time.sleep(0.1)
+            #selector = f"[data-qid='{data_qid}'] span.dui-select-arrow.form-select-arrow"
+            #dropdown = self.driver.find_element(By.CSS_SELECTOR, selector)
+            #if dropdown:
+            #    self.driver.execute_script("arguments[0].click();", dropdown)
+            #    time.sleep(1)
 
+            #debug_script = """
+            #var elements = document.querySelectorAll('.dui-dropdown-content-bottom');
+            #if (elements.length > arguments[0]) {
+            #    var targetElement = elements[arguments[0]];
+            #    var descendants = targetElement.querySelectorAll('.dui-menu-item-text-container');
+            #    var texts = [];
+            #    descendants.forEach(function(element) {
+            #        texts.push(element.textContent.trim());
+            #    });
+            #    return texts;
+            #}
+            #return [];
+            #"""
+            #available_texts = self.driver.execute_script(debug_script, pos)
+            #print(f"pos: {pos}, Available options: {available_texts}")
+            #print(f"Trying to match: {text}")
+
+            # Script to select the desired option
             script = """
-            var elements = document.querySelectorAll('.dui-dropdown-content-inner');
-            if (elements.length > arguments[0]) { 
+            var elements = document.querySelectorAll('.dui-dropdown-content-bottom');
+            if (elements.length > arguments[0]) {
                 var targetElement = elements[arguments[0]];
-                var descendants = targetElement.querySelectorAll('.dui-menu-item-text-container'); 
-                if (descendants.length > arguments[1]) { 
-                    var descendant = descendants[arguments[1]]; 
-                    return descendant;
-                } else {
-                    return null;
+                var descendants = targetElement.querySelectorAll('.dui-menu-item-text-container');
+                for (var i = 0; i < descendants.length; i++) {
+                    var currentText = descendants[i].textContent.trim();
+                    if (currentText === arguments[1]) {
+                        return descendants[i];
+                    }
                 }
-            } else {
                 return null;
             }
-            elements.forEach(function(element) {
-                texts.push(element.textContent);
-            });
+            return null;
             """
-            choice = self.driver.execute_script(script, pos, index)
+            choice = self.driver.execute_script(script, pos, text)
+
             if choice:
+                #print("Element found, attempting to click")
                 self.driver.execute_script("arguments[0].click();", choice)
+                time.sleep(0.1)
+            else:
+                print("未发现匹配元素")
 
-            selector = f"[data-qid='{data_qid}'] span.dui-select-arrow.form-select-arrow"
-            dropdown = self.driver.find_element(By.CSS_SELECTOR, selector)
-            if dropdown:
-                self.driver.execute_script("arguments[0].click();", dropdown)
+            # Close the dropdown menu
+            #if dropdown:
+            #    self.driver.execute_script("arguments[0].click();", dropdown)
 
+        except Exception as e:
+            print(f"填充select类型问题时发生错误: {str(e)}")
         finally:
-            time.sleep(0)
+            time.sleep(0.5)
     
     def get_answer(self): #获取用户答案
         try:
@@ -189,9 +210,12 @@ class Responder:
 
                     elif question['type'] == 'select':
                         print(f"选项: {question['select_choice']}")
-                        user_answer = input("请输入选项序号: ")
-                        if user_answer.isdigit() and 0 <= int(user_answer) <= 100:
-                            question['user_answer'] = int(user_answer)
+                        user_answer = input("请输入选项文本内容: ")
+                        #if user_answer.isdigit() and 0 <= int(user_answer) <= 100:
+                        #    question['user_answer'] = int(user_answer)
+                        #    break
+                        if user_answer:
+                            question['user_answer'] = user_answer.strip()
                             break
 
                     elif question['type'] == 'simple':
@@ -214,11 +238,11 @@ class Responder:
             pass
             #print("get answer...")
 
-    def get_select_text(self, index, lens): #获得下拉表单类问题的选项内容
+    def get_select_text(self, pos, lens): #获得下拉表单类问题的选项内容
         try:
             script = f"""
             var parentElements = document.querySelectorAll('.dui-dropdown-content-bottom');
-            var secondElement = parentElements[{index-1}]; 
+            var secondElement = parentElements[{pos}]; 
             var elements = secondElement.querySelectorAll('.dui-menu-item-text-container');
             var texts = [];
             elements.forEach(function(element) {{
@@ -232,9 +256,9 @@ class Responder:
             index = -1
             for con in contents:
                 index += 1
-                content = content + con + " : " + str(index) + "\n"
+                content = content + con + "\n"#+ " : " + str(index) + "\n"
             lens = index + 1
-            return content
+            return content, contents
 
         except Exception as e:
             print(f"获取 select 类型问题的选项文本时发生错误: {str(e)}")
@@ -416,3 +440,18 @@ class Responder:
         
     def Expand(self): #扩大浏览器页面，暂时没用
         self.driver.set_window_size(5000, 5000)
+
+    def reget_id(self): #测试时发现偶尔会发生获取的id不对应题目的情况，故加此函数，增加代码健壮性
+        elements = self.driver.find_elements(By.CSS_SELECTOR, f".{self.questions[0]['data-qid']}")
+        if not elements:
+            try:
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".question")))
+                questions = self.driver.find_elements(By.CSS_SELECTOR, ".question")
+                for question in questions:  
+                    data_qid = question.get_attribute('data-qid')
+                    for question in self.questions:
+                        question['data-qid'] = data_qid
+            except Exception as e:
+                print(f"重新获取id时发生错误: {str(e)}")
+            finally:
+                pass

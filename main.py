@@ -10,9 +10,10 @@ import style
 state_code = 0
 
 def wait_and_fill():
-        time.sleep(Instance.time_count(0))
-        Instance.fill_the_questions()
-        Instance.Submit()
+    Instance.reget_id()
+    time.sleep(Instance.time_count(0))
+    Instance.fill_the_questions()
+    Instance.Submit()
 
 if __name__ == "__main__":
     #url = input('the url: ')
